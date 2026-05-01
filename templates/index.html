@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Task Manager</title>
+
+<style>
+    body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+        background: #f4f6f9;
+        color: #333;
+    }
+
+    /* Center layout */
+    .center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    /* Card style */
+    .card {
+        background: #fff;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        width: 320px;
+    }
+
+    h2, h3 {
+        margin-bottom: 15px;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        outline: none;
+        transition: 0.2s;
+    }
+
+    input:focus {
+        border-color: #4a90e2;
+    }
+
+    button {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 8px;
+        background: #4a90e2;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        background: #357bd8;
+    }
+
+    /* Dashboard */
+    #dashboard {
+        padding: 30px;
+    }
+
+    .section {
+        background: #fff;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+
+    ul {
+        list-style: none;
+        padding: 0;
+    }
+
+    li {
+        background: #f9fafc;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 8px;
+        border-left: 4px solid #4a90e2;
+    }
+
+    .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    @media(max-width: 600px) {
+        .row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginPage" class="center">
+    <div class="card">
+        <h2>Welcome Back 👋</h2>
+
+        <input id="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Password">
+
+        <button onclick="login()">Login</button>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" style="display:none;">
+
+    <h2>Task Dashboard</h2>
+
+    <!-- PROJECT -->
+    <div class="section">
+        <h3>Create Project</h3>
+        <input id="pname" placeholder="Project Name">
+        <input id="pdesc" placeholder="Description">
+        <button onclick="createProject()">Create Project</button>
+    </div>
+
+    <!-- TASK -->
+    <div class="section">
+        <h3>Create Task</h3>
+
+        <div class="row">
+            <input id="title" placeholder="Title">
+            <input id="desc" placeholder="Description">
+        </div>
+
+        <div class="row">
+            <input id="date" type="date">
+            <input id="project_id" placeholder="Project ID">
+        </div>
+
+        <button onclick="createTask()">Create Task</button>
+    </div>
+
+    <!-- TASK LIST -->
+    <div class="section">
+        <h3>Your Tasks</h3>
+        <button onclick="loadTasks()">Refresh Tasks</button>
+        <ul id="taskList"></ul>
+    </div>
+
+</div>
+
+<script>
+window.onload = function () {
+    const token = localStorage.getItem("token");
+
+    if (token) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    }
+};
+
+// LOGIN
+function login() {
+    fetch('/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        localStorage.setItem("token", data.token);
+
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+    });
+}
+
+// CREATE PROJECT
+function createProject() {
+    fetch('/create_project', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            name: document.getElementById('pname').value,
+            description: document.getElementById('pdesc').value
+        })
+    });
+}
+
+// CREATE TASK
+function createTask() {
+    fetch('/create_task', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            title: document.getElementById('title').value,
+            description: document.getElementById('desc').value,
+            due_date: document.getElementById('date').value,
+            project_id: parseInt(document.getElementById('project_id').value)
+        })
+    });
+}
+
+// LOAD TASKS
+function loadTasks() {
+    fetch('/tasks', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem("token")
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        let list = document.getElementById('taskList');
+        list.innerHTML = "";
+
+        let seen = new Set();
+
+        data.forEach(task => {
+            if (!seen.has(task.id)) {
+                let li = document.createElement('li');
+                li.innerText = `${task.title} - ${task.status}`;
+                list.appendChild(li);
+                seen.add(task.id);
+            }
+        });
+    });
+}
+</script>
+
+</body>
+</html>
